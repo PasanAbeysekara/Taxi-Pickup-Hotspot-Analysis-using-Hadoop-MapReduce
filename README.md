@@ -144,14 +144,13 @@ NYCTaxiAnalysis/
     /user/<your_username>/nyctaxi_output \
     /user/<your_username>/nyctaxi_lookup/taxi_zone_lookup.csv
     ```
-
-    ![alt text](images/1.png)
-    ![alt text](images/2.png)
+    ![1](https://github.com/user-attachments/assets/5ae0394d-b3f2-4ceb-abf3-854dfd9b31db)  
+    ![2](https://github.com/user-attachments/assets/b2f54814-d1d0-4f6f-ab9a-7d4cf1a5d97f)
 
     You can monitor the job progress via the YARN ResourceManager UI, typically at `http://<your-resourcemanager-host>:8088`.
 
-    ![alt text](images/9.png)
-    ![alt text](images/10.png)
+    ![9](https://github.com/user-attachments/assets/a5dce541-54bc-4722-b6a7-e31d55e14ec8)
+    ![10](https://github.com/user-attachments/assets/9ad0a337-9413-4a01-8b8c-f9955f5ea8e6)
 
 5.  **Retrieve and View Results:**
     Once the job completes successfully, the output will be in the HDFS directory `/user/<your_username>/nyctaxi_output/`. It will contain a `_SUCCESS` file and one or more `part-r-xxxxx` files.
@@ -162,8 +161,8 @@ NYCTaxiAnalysis/
       hdfs dfs -cat /user/<your_username>/nyctaxi_output/part-r-00000 | head
       ```
 
-      ![alt text](images/3.png)
-      ![alt text](images/6.png)
+    ![3](https://github.com/user-attachments/assets/c44fcf88-db1c-479c-844f-fadf5e956d42)
+    ![6](https://github.com/user-attachments/assets/7492d993-5250-461b-95ab-3841024eb7bd)
 
     - **Get Top N Busiest Locations using shell command:**
 
@@ -171,7 +170,7 @@ NYCTaxiAnalysis/
       hdfs dfs -cat /user/<your_username>/nyctaxi_output/part-r-* | sort -k2,2nr -t$'\t' | head -n 20
       ```
 
-      ![alt text](images/7.png)
+    ![7](https://github.com/user-attachments/assets/859d9a38-6a24-4421-b750-ec14859a0ec5)
 
     - **Get Top N Busiest Locations using the Python script:**
       First, merge the output parts into a single local file:
@@ -182,7 +181,8 @@ NYCTaxiAnalysis/
       ```bash
       python3 scripts/get_top_n.py local_output.txt
       ```
-      ![alt text](images/8.png)
+      ![8](https://github.com/user-attachments/assets/959f4884-1714-4f9b-b768-e903b199f842)
+
 
 ## Results and Observations
 
@@ -216,9 +216,11 @@ The MapReduce job successfully processed ~10.9 million taxi trip records for Jan
 The YARN ResourceManager UI provides valuable insights into the job's execution.
 
 - **Job Counters:** The counters are essential for verifying correctness and performance.
-  ![alt text](images/image.png)
+  
+![image](https://github.com/user-attachments/assets/aa921682-a4be-4d0d-8ebb-8197faa4665e)
 
-      ![alt text](images/22-counters.png)
+![22-counters](https://github.com/user-attachments/assets/6ece709b-d197-4958-b616-8a070e76c7f2)
+
       *   `Map input records`: Should match the total records in the input Parquet file. (e.g., 10,905,067)
       *   `Map output records`: Should also match input records if each input record produces one output. (e.g., 10,905,067)
       *   `Combine input records`: Shows how many records were fed into the combiner. (e.g., 10,905,069)
@@ -226,7 +228,8 @@ The YARN ResourceManager UI provides valuable insights into the job's execution.
       *   `Reduce input groups`: Number of unique keys received by the reducers (unique `PULocationID`s). (e.g., 261)
       *   `Reduce output records`: Number of final output lines (unique taxi zones with counts). (e.g., 261)
 
-      ![alt text](images/image-1.png)
+![image-1](https://github.com/user-attachments/assets/bdcf76f1-1b9f-45e5-94aa-2efe91366ced)
+
 
       *   `ReducerSetup` -> `ZoneLookupEntriesLoaded`: Confirms the number of entries loaded from the `taxi_zone_lookup.csv`. (e.g., 265)
       *   Any error counters (e.g., `NullGroupValueEncountered`, `LookupParseErrors`, `IDNotFoundInCache`) should ideally be zero or very low.
@@ -236,8 +239,9 @@ The YARN ResourceManager UI provides valuable insights into the job's execution.
   - You can drill down into individual map and reduce tasks to see their execution time, logs (`stdout`, `stderr`, `syslog`), and specific counters.
   - The `stderr` logs for mappers were crucial during debugging to identify issues like `NullPointerExceptions` or problems with Parquet record parsing.
 
-  ![alt text](images/image-2.png)
-  ![alt text](images/image-4.png)
+![image-2](https://github.com/user-attachments/assets/0189a6bc-dc81-45c5-9af4-26025f80c76a)    
+![image-4](https://github.com/user-attachments/assets/d54ef6ee-180c-4d6e-8805-63c5f23f5f7a)
+
 
 ### Data Insights:
 
