@@ -1,0 +1,4 @@
+*.csv
+*.parquet
+target/
+*.crc
