@@ -13,6 +13,10 @@ sudo apt-get update
 echo "Installing OpenJDK..."
 sudo apt-get install -y openjdk-8-jdk
 
+# Install Maven and Python3
+echo "Installing Maven and Python3..."
+sudo apt-get install -y maven python3 python3-pip wget
+
 # Create Hadoop user
 echo "Creating hadoop user..."
 sudo adduser hadoop --gecos "Hadoop User,,,," --disabled-password
@@ -35,3 +39,16 @@ wget https://downloads.apache.org/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz
 tar xzf hadoop-3.3.6.tar.gz
 sudo mv hadoop-3.3.6 /usr/local/hadoop
 sudo chown -R hadoop:hadoop /usr/local/hadoop
+
+# Set environment variables
+echo "Setting up environment variables..."
+echo '
+# Hadoop Environment Variables
+export HADOOP_HOME=/usr/local/hadoop
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+' | sudo tee -a /home/hadoop/.bashrc
