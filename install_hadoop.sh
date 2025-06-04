@@ -52,3 +52,35 @@ export HADOOP_COMMON_HOME=$HADOOP_HOME
 export HADOOP_HDFS_HOME=$HADOOP_HOME
 export YARN_HOME=$HADOOP_HOME
 ' | sudo tee -a /home/hadoop/.bashrc
+
+# Configure Hadoop
+echo "Configuring Hadoop..."
+sudo -u hadoop bash -c 'cat > /usr/local/hadoop/etc/hadoop/core-site.xml << EOL
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://localhost:9000</value>
+    </property>
+</configuration>
+EOL'
+
+sudo -u hadoop bash -c 'cat > /usr/local/hadoop/etc/hadoop/hdfs-site.xml << EOL
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>dfs.replication</name>
+        <value>1</value>
+    </property>
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>/usr/local/hadoop/data/namenode</value>
+    </property>
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>/usr/local/hadoop/data/datanode</value>
+    </property>
+</configuration>
+EOL'
