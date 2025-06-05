@@ -107,7 +107,7 @@ mkdir -p NYCTaxiAnalysis/{src/main/java/com/nyctaxi,data,scripts,target}
 echo "Downloading NYC Taxi dataset..."
 cd NYCTaxiAnalysis/data
 wget -O yellow_tripdata_2016-01.parquet https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2016-01.parquet
-wget -O taxi_zone_lookup.csv https://raw.githubusercontent.com/PasanAbeysekara/Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce/main/data/taxi_zone_lookup.csv
+wget -O taxi_zone_lookup.csv https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
 
 # Create HDFS directories and upload data
 echo "Creating HDFS directories and uploading data..."
