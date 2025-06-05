@@ -84,3 +84,62 @@ sudo -u hadoop bash -c 'cat > /usr/local/hadoop/etc/hadoop/hdfs-site.xml << EOL
     </property>
 </configuration>
 EOL'
+
+# Create Hadoop data directories
+echo "Creating Hadoop directories..."
+sudo -u hadoop mkdir -p /usr/local/hadoop/data/namenode
+sudo -u hadoop mkdir -p /usr/local/hadoop/data/datanode
+
+# Format HDFS
+echo "Formatting HDFS..."
+sudo -u hadoop /usr/local/hadoop/bin/hdfs namenode -format
+
+# Start Hadoop
+echo "Starting Hadoop services..."
+sudo -u hadoop start-dfs.sh
+sudo -u hadoop start-yarn.sh
+
+# Create project structure
+echo "Setting up project structure..."
+mkdir -p NYCTaxiAnalysis/{src/main/java/com/nyctaxi,data,scripts,target}
+
+# Download dataset to the correct location
+echo "Downloading NYC Taxi dataset..."
+cd NYCTaxiAnalysis/data
+wget -O yellow_tripdata_2016-01.parquet https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2016-01.parquet
+wget -O taxi_zone_lookup.csv https://raw.githubusercontent.com/PasanAbeysekara/Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce/main/data/taxi_zone_lookup.csv
+
+# Create HDFS directories and upload data
+echo "Creating HDFS directories and uploading data..."
+hdfs dfs -mkdir -p /user/hadoop/nyctaxi_input
+hdfs dfs -mkdir -p /user/hadoop/nyctaxi_lookup
+hdfs dfs -put yellow_tripdata_2016-01.parquet /user/hadoop/nyctaxi_input/
+hdfs dfs -put taxi_zone_lookup.csv /user/hadoop/nyctaxi_lookup/
+cd ..
+
+# Download Python script
+echo "Downloading Python analysis script..."
+cd scripts
+wget -O get_top_n.py https://raw.githubusercontent.com/PasanAbeysekara/Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce/main/scripts/get_top_n.py
+cd ..
+
+# Build and run MapReduce job
+echo "Building MapReduce job..."
+mvn clean package
+
+echo "Running MapReduce job..."
+hadoop jar target/NYCTaxiAnalysis-1.0-SNAPSHOT.jar com.nyctaxi.NYCTaxiDriver \
+/user/hadoop/nyctaxi_input/yellow_tripdata_2016-01.parquet \
+/user/hadoop/nyctaxi_output \
+/user/hadoop/nyctaxi_lookup/taxi_zone_lookup.csv
+
+# Get results
+echo "Retrieving results..."
+hdfs dfs -getmerge /user/hadoop/nyctaxi_output/part-r-* local_output.txt
+
+# Run Python analysis
+echo "Running Python analysis..."
+python3 scripts/get_top_n.py local_output.txt
+
+echo "Installation and analysis completed!"
+echo "You can find the results in local_output.txt"
