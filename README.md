@@ -14,7 +14,8 @@ The primary goal is to count the number of taxi pickups for each taxi zone in Ne
     - **File Used:** `yellow_tripdata_2016-01.parquet` (Data for January 2016)
     - **Format:** Apache Parquet
     - **Size:** Approximately 10.9 million records.
-    - **Relevant Column:** `PULocationID` (Pickup Location ID)
+    - **Relevant Column:** `PULocationID` (Pickup Location ID).
+    - **Download Link:** [yellow_tripdata_2016-01.parquet (January 2016)](https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2016-01.parquet)
 
 2.  **Taxi Zone Lookup Table:**
     - **Source:** NYC TLC - Taxi Zones
@@ -22,6 +23,7 @@ The primary goal is to count the number of taxi pickups for each taxi zone in Ne
     - **Format:** CSV
     - **Relevant Columns:** `LocationID`, `Borough`, `Zone`
     - **Purpose:** To map the numeric `PULocationID` from the trip data to meaningful Borough and Zone names.
+    - **Download Link:** [taxi_zone_lookup.csv](https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv)
 
 ## Technologies Used
 
@@ -144,6 +146,7 @@ NYCTaxiAnalysis/
     /user/<your_username>/nyctaxi_output \
     /user/<your_username>/nyctaxi_lookup/taxi_zone_lookup.csv
     ```
+
     ![1](images/1.png)  
     ![2](images/2.png)
 
@@ -183,7 +186,6 @@ NYCTaxiAnalysis/
       ```
       ![8](images/8.png)
 
-
 ## Results and Observations
 
 The MapReduce job successfully processed ~10.9 million taxi trip records for January 2016.
@@ -216,31 +218,30 @@ The MapReduce job successfully processed ~10.9 million taxi trip records for Jan
 The YARN ResourceManager UI provides valuable insights into the job's execution.
 
 - **Job Counters:** The counters are essential for verifying correctness and performance.
-  
-    ![image](images/image.png)
 
-    ![22-counters](images/22-counters.png)
+  ![image](images/image.png)
 
-    *   `Map input records`: Should match the total records in the input Parquet file. (e.g., 10,905,067)
-    *   `Map output records`: Should also match input records if each input record produces one output. (e.g., 10,905,067)
-    *   `Combine input records`: Shows how many records were fed into the combiner. (e.g., 10,905,069)
-    *   `Combine output records`: This value should be significantly smaller than `Combine input records`, indicating the combiner's effectiveness in local aggregation. (e.g., 1263 in this run)
-    *   `Reduce input groups`: Number of unique keys received by the reducers (unique `PULocationID`s). (e.g., 261)
-    *   `Reduce output records`: Number of final output lines (unique taxi zones with counts). (e.g., 261)
+  ![22-counters](images/22-counters.png)
 
-    ![image-1](images/image-1.png)
+  - `Map input records`: Should match the total records in the input Parquet file. (e.g., 10,905,067)
+  - `Map output records`: Should also match input records if each input record produces one output. (e.g., 10,905,067)
+  - `Combine input records`: Shows how many records were fed into the combiner. (e.g., 10,905,069)
+  - `Combine output records`: This value should be significantly smaller than `Combine input records`, indicating the combiner's effectiveness in local aggregation. (e.g., 1263 in this run)
+  - `Reduce input groups`: Number of unique keys received by the reducers (unique `PULocationID`s). (e.g., 261)
+  - `Reduce output records`: Number of final output lines (unique taxi zones with counts). (e.g., 261)
 
-    *   `ReducerSetup` -> `ZoneLookupEntriesLoaded`: Confirms the number of entries loaded from the `taxi_zone_lookup.csv`. (e.g., 265)
-    *   Any error counters (e.g., `NullGroupValueEncountered`, `LookupParseErrors`, `IDNotFoundInCache`) should ideally be zero or very low.
-    
+  ![image-1](images/image-1.png)
+
+  - `ReducerSetup` -> `ZoneLookupEntriesLoaded`: Confirms the number of entries loaded from the `taxi_zone_lookup.csv`. (e.g., 265)
+  - Any error counters (e.g., `NullGroupValueEncountered`, `LookupParseErrors`, `IDNotFoundInCache`) should ideally be zero or very low.
+
 - **Task-Level Details:**
 
   - You can drill down into individual map and reduce tasks to see their execution time, logs (`stdout`, `stderr`, `syslog`), and specific counters.
   - The `stderr` logs for mappers were crucial during debugging to identify issues like `NullPointerExceptions` or problems with Parquet record parsing.
 
-    ![image-2](images/image-2.png)    
+    ![image-2](images/image-2.png)  
     ![image-4](images/image-4.png)
-
 
 ### Data Insights:
 

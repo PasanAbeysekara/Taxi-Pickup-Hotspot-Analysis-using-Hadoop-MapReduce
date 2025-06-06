@@ -1,145 +1,127 @@
 #!/bin/bash
 
-# Exit on any error
 set -e
 
-echo "Starting Hadoop Installation Script..."
-
-# Update package list
-echo "Updating package list..."
+echo "========== STEP 1: Install Dependencies =========="
 sudo apt-get update
+sudo apt-get install -y openjdk-11-jdk maven ssh rsync wget
 
-# Install Java
-echo "Installing OpenJDK..."
-sudo apt-get install -y openjdk-8-jdk
+echo "========== STEP 2: Set Environment Variables =========="
+JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
+echo "export JAVA_HOME=$JAVA_HOME" >> ~/.bashrc
+echo "export PATH=\$PATH:\$JAVA_HOME/bin" >> ~/.bashrc
+source ~/.bashrc
 
-# Install Maven and Python3
-echo "Installing Maven and Python3..."
-sudo apt-get install -y maven python3 python3-pip wget
+echo "========== STEP 3: Download and Configure Hadoop =========="
+HADOOP_VERSION=3.4.1
+HADOOP_DIR=$HOME/hadoop
+HADOOP_HOME=$HADOOP_DIR/hadoop-${HADOOP_VERSION}
 
-# Create Hadoop user
-echo "Creating hadoop user..."
-sudo adduser hadoop --gecos "Hadoop User,,,," --disabled-password
-echo "hadoop:hadoop" | sudo chpasswd
-sudo usermod -aG sudo hadoop
+mkdir -p "$HADOOP_DIR"
+cd "$HADOOP_DIR"
 
-# Install SSH
-echo "Installing SSH..."
-sudo apt-get install -y openssh-server openssh-client
+if [ ! -f "hadoop-${HADOOP_VERSION}.tar.gz" ]; then
+  wget "https://dlcdn.apache.org/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz"
+fi
 
-# Generate SSH keys
-echo "Generating SSH keys..."
-sudo -u hadoop ssh-keygen -t rsa -P "" -f /home/hadoop/.ssh/id_rsa
-sudo -u hadoop cat /home/hadoop/.ssh/id_rsa.pub >> /home/hadoop/.ssh/authorized_keys
-sudo -u hadoop chmod 0600 /home/hadoop/.ssh/authorized_keys
+if [ ! -d "$HADOOP_HOME" ]; then
+  tar -xzf "hadoop-${HADOOP_VERSION}.tar.gz"
+fi
 
-# Download and install Hadoop
-echo "Downloading Hadoop..."
-wget https://downloads.apache.org/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz
-tar xzf hadoop-3.3.6.tar.gz
-sudo mv hadoop-3.3.6 /usr/local/hadoop
-sudo chown -R hadoop:hadoop /usr/local/hadoop
+echo "export HADOOP_HOME=$HADOOP_HOME" >> ~/.bashrc
+echo "export PATH=\$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin" >> ~/.bashrc
+echo "export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop" >> ~/.bashrc
+source ~/.bashrc
 
-# Set environment variables
-echo "Setting up environment variables..."
-echo '
-# Hadoop Environment Variables
-export HADOOP_HOME=/usr/local/hadoop
-export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
-export PATH=$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
-export HADOOP_MAPRED_HOME=$HADOOP_HOME
-export HADOOP_COMMON_HOME=$HADOOP_HOME
-export HADOOP_HDFS_HOME=$HADOOP_HOME
-export YARN_HOME=$HADOOP_HOME
-' | sudo tee -a /home/hadoop/.bashrc
+echo "========== STEP 4: Configure Hadoop Core Files =========="
+cd "$HADOOP_HOME/etc/hadoop"
 
-# Configure Hadoop
-echo "Configuring Hadoop..."
-sudo -u hadoop bash -c 'cat > /usr/local/hadoop/etc/hadoop/core-site.xml << EOL
-<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+cat > core-site.xml <<EOF
 <configuration>
-    <property>
-        <name>fs.defaultFS</name>
-        <value>hdfs://localhost:9000</value>
-    </property>
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://localhost:9000</value>
+  </property>
 </configuration>
-EOL'
+EOF
 
-sudo -u hadoop bash -c 'cat > /usr/local/hadoop/etc/hadoop/hdfs-site.xml << EOL
-<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+cat > hdfs-site.xml <<EOF
 <configuration>
-    <property>
-        <name>dfs.replication</name>
-        <value>1</value>
-    </property>
-    <property>
-        <name>dfs.namenode.name.dir</name>
-        <value>/usr/local/hadoop/data/namenode</value>
-    </property>
-    <property>
-        <name>dfs.datanode.data.dir</name>
-        <value>/usr/local/hadoop/data/datanode</value>
-    </property>
+  <property>
+    <name>dfs.replication</name>
+    <value>1</value>
+  </property>
 </configuration>
-EOL'
+EOF
 
-# Create Hadoop data directories
-echo "Creating Hadoop directories..."
-sudo -u hadoop mkdir -p /usr/local/hadoop/data/namenode
-sudo -u hadoop mkdir -p /usr/local/hadoop/data/datanode
+# Only copy template if it exists
+if [ -f mapred-site.xml.template ]; then
+  cp mapred-site.xml.template mapred-site.xml
+fi
 
-# Format HDFS
-echo "Formatting HDFS..."
-sudo -u hadoop /usr/local/hadoop/bin/hdfs namenode -format
+cat > mapred-site.xml <<EOF
+<configuration>
+  <property>
+    <name>mapreduce.framework.name</name>
+    <value>yarn</value>
+  </property>
+</configuration>
+EOF
 
-# Start Hadoop
-echo "Starting Hadoop services..."
-sudo -u hadoop start-dfs.sh
-sudo -u hadoop start-yarn.sh
+cat > yarn-site.xml <<EOF
+<configuration>
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value>
+  </property>
+</configuration>
+EOF
 
-# Create project structure
-echo "Setting up project structure..."
-mkdir -p NYCTaxiAnalysis/{src/main/java/com/nyctaxi,data,scripts,target}
+# Fix JAVA_HOME path in Hadoop config
+sed -i "s|^# export JAVA_HOME=.*|export JAVA_HOME=$JAVA_HOME|" hadoop-env.sh
 
-# Download dataset to the correct location
-echo "Downloading NYC Taxi dataset..."
-cd NYCTaxiAnalysis/data
-wget -O yellow_tripdata_2016-01.parquet https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2016-01.parquet
-wget -O taxi_zone_lookup.csv https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
+echo "========== STEP 5: Format HDFS =========="
+$HADOOP_HOME/bin/hdfs namenode -format -force
 
-# Create HDFS directories and upload data
-echo "Creating HDFS directories and uploading data..."
-hdfs dfs -mkdir -p /user/hadoop/nyctaxi_input
-hdfs dfs -mkdir -p /user/hadoop/nyctaxi_lookup
-hdfs dfs -put yellow_tripdata_2016-01.parquet /user/hadoop/nyctaxi_input/
-hdfs dfs -put taxi_zone_lookup.csv /user/hadoop/nyctaxi_lookup/
+echo "========== STEP 6: Start Hadoop Services =========="
+$HADOOP_HOME/sbin/start-dfs.sh
+$HADOOP_HOME/sbin/start-yarn.sh
+
+echo "========== STEP 7: Clone NYC Taxi Project =========="
+cd ~
+rm -rf Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce
+git clone https://github.com/PasanAbeysekara/Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce.git
+
+echo "========== STEP 8: Download Dataset =========="
+cd Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce/NYCTaxiAnalysis
+mkdir -p data
+cd data
+wget -nc https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2016-01.parquet
+wget -nc https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
 cd ..
 
-# Download Python script
-echo "Downloading Python analysis script..."
-cd scripts
-wget -O get_top_n.py https://raw.githubusercontent.com/PasanAbeysekara/Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce/main/scripts/get_top_n.py
-cd ..
-
-# Build and run MapReduce job
-echo "Building MapReduce job..."
+echo "========== STEP 9: Build with Maven =========="
 mvn clean package
 
-echo "Running MapReduce job..."
+echo "========== STEP 10: Upload Files to HDFS =========="
+HDFS_INPUT="/user/$(whoami)/nyctaxi_input"
+HDFS_LOOKUP="/user/$(whoami)/nyctaxi_lookup"
+HDFS_OUTPUT="/user/$(whoami)/nyctaxi_output"
+
+hdfs dfs -mkdir -p "$HDFS_INPUT"
+hdfs dfs -mkdir -p "$HDFS_LOOKUP"
+hdfs dfs -put -f data/yellow_tripdata_2016-01.parquet "$HDFS_INPUT/"
+hdfs dfs -put -f data/taxi_zone_lookup.csv "$HDFS_LOOKUP/"
+hdfs dfs -rm -r -f "$HDFS_OUTPUT" || true
+
+echo "========== STEP 11: Run MapReduce Job =========="
 hadoop jar target/NYCTaxiAnalysis-1.0-SNAPSHOT.jar com.nyctaxi.NYCTaxiDriver \
-/user/hadoop/nyctaxi_input/yellow_tripdata_2016-01.parquet \
-/user/hadoop/nyctaxi_output \
-/user/hadoop/nyctaxi_lookup/taxi_zone_lookup.csv
+"$HDFS_INPUT/yellow_tripdata_2016-01.parquet" \
+"$HDFS_OUTPUT" \
+"$HDFS_LOOKUP/taxi_zone_lookup.csv"
 
-# Get results
-echo "Retrieving results..."
-hdfs dfs -getmerge /user/hadoop/nyctaxi_output/part-r-* local_output.txt
+echo "========== STEP 12: Display Top 10 Zones =========="
+hdfs dfs -get "$HDFS_OUTPUT/part-r-00000" result.txt
+sort -k2 -nr result.txt | head -n 10
 
-# Run Python analysis
-echo "Running Python analysis..."
-python3 scripts/get_top_n.py local_output.txt
-
-echo "Installation and analysis completed!"
-echo "You can find the results in local_output.txt"
+echo "✅ DONE: NYC Taxi Hotspot Analysis Completed."
