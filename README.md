@@ -468,26 +468,7 @@ Screenshot of the terminal output from the `get_top_n.py` script, clearly showin
 *   **Geospatial Visualization:** Integrate the output with GIS tools or libraries (e.g., GeoPandas, QGIS) to create heatmaps or choropleth maps of pickup intensity across NYC, providing a more intuitive visual representation.
 *   **Advanced Top N:** For scenarios with an extremely large number of unique keys where sorting externally is inefficient, implement a secondary MapReduce job specifically for sorting the (Zone, Count) pairs to produce the Top N list directly within Hadoop.
 
-## 6. Documentation and Submission
-
-This README file provides a clear and comprehensive overview of the project, including:
-*   The project's objective, the dataset chosen, and the MapReduce workflow implemented.
-*   Detailed, step-by-step instructions for setting up the environment, building the project, and executing the MapReduce job.
-*   Evidence of successful execution through descriptions of expected command outputs and references to supporting screenshots.
-*   A thorough interpretation of the results, including key insights derived from the data, observations on performance and accuracy, and suggestions for future enhancements.
-
-The source code is well-commented to explain the logic and organized according to standard Java and Maven conventions, promoting clarity and maintainability. The overall documentation aims to be clear and sufficient for understanding and evaluating the project.
-
-**(Self-reflection on Project Scale and Creativity/Complexity):**
-*   **Scale:** The project successfully demonstrates the ability to process a large, real-world dataset (10.9 million records), fulfilling the "large-scale" aspect of the assignment.
-*   **Creativity/Complexity:** While the core task is aggregation, the project integrates several important Big Data techniques that add to its complexity and practical relevance:
-    *   Efficiently processing data from the columnar Parquet format.
-    *   Implementing an effective Combiner to optimize data shuffling and reduce phase workload.
-    *   Performing a join operation with an external lookup dataset using Hadoop's DistributedCache, a common pattern for enriching data.
-    *   Developing robust error handling and data parsing mechanisms, particularly for the CSV lookup table, to ensure data integrity.
-    *   The choice and handling of a real-world, often "messy," dataset provides a more realistic challenge than a perfectly clean synthetic dataset.
-
-## 7. Troubleshooting/Challenges Faced
+## 6. Troubleshooting/Challenges Faced
 
 Several challenges were encountered and overcome during the development of this project:
 *   **Reading Parquet in Java MapReduce:** This required careful management of Parquet-related dependencies in the `pom.xml` file and correct configuration of `ParquetInputFormat` with `GroupReadSupport` in the Hadoop job driver.
