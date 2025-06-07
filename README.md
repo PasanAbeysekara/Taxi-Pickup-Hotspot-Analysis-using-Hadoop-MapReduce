@@ -114,7 +114,14 @@ NYCTaxiAnalysis/
 
     This will compile the Java code and create a fat JAR (`target/NYCTaxiAnalysis-1.0-SNAPSHOT.jar`) containing all dependencies.
 
-3.  **Upload Data to HDFS:**
+3. **Running on Hadoop**
+   ```bash
+   start-dfs.sh
+   start-yarn.sh
+   $HADOOP_HOME/sbin/mr-jobhistory-daemon.sh start historyserver
+   ```
+
+5.  **Upload Data to HDFS:**
     Ensure your HDFS is running.
 
     ```bash
@@ -131,7 +138,7 @@ NYCTaxiAnalysis/
 
     Replace `<your_username>` with your Hadoop username and `path/to/your/local/` with the actual local paths to your data files.
 
-4.  **Run the MapReduce Job:**
+6.  **Run the MapReduce Job:**
     Before running, ensure any previous output directory is removed:
 
     ```bash
@@ -155,13 +162,13 @@ NYCTaxiAnalysis/
     ![9](images/9.png)
     ![10](images/10.png)
 
-5.  **Retrieve and View Results:**
+7.  **Retrieve and View Results:**
     Once the job completes successfully, the output will be in the HDFS directory `/user/<your_username>/nyctaxi_output/`. It will contain a `_SUCCESS` file and one or more `part-r-xxxxx` files.
 
     - **View raw output from HDFS (sample):**
 
       ```bash
-      hdfs dfs -cat /user/<your_username>/nyctaxi_output/part-r-00000 | head
+      hdfs dfs -cat /user/<your_username>/nyctaxi_output/part-r-00000
       ```
 
     ![3](images/3.png)
