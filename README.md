@@ -3,12 +3,110 @@
 #### **Module Name:** Cloud Computing
 #### **Module Number:** EC7205
 #### **Assignment Title:** Large-Scale Data Analysis Using MapReduce
-#### **Team Members:** 
+#### **Team Members:**
 1. Abeysekara P.K. (EG/2020/3799)
 2. Aralugaswaththa S.V.C.R.P (EG/2020/3827)
 3. De Silva K.B.L.H. (EG/2020/3882)
 
 This project fulfills the requirements for Assignment 1 by implementing a custom MapReduce job using Hadoop to process a real-world dataset (NYC Yellow Taxi trip data) and extract meaningful insights regarding taxi pickup hotspots.
+
+---
+
+## Table of Contents
+
+*   [Quick Start: Get Up and Running](#quick-start-get-up-and-running)
+*   [1. Project Objective & Task](#1-project-objective--task)
+*   [2. Dataset Chosen & Appropriateness](#2-dataset-chosen--appropriateness)
+    *   [Data Investigation](#data-investigation)
+*   [3. MapReduce Job Implementation & Logic](#3-mapreduce-job-implementation--logic)
+    *   [a. MapReduce Workflow Details & Example](#a-mapreduce-workflow-details--example)
+    *   [b. Code Structure](#b-code-structure)
+*   [4. Setup Environment & Execution](#4-setup-environment--execution)
+    *   [a. Prerequisites](#a-prerequisites)
+    *   [b. Hadoop Installation Evidence](#b-hadoop-installation-evidence)
+    *   [c. Steps to Run (Detailed)](#c-steps-to-run-detailed)
+    *   [d. Execution Output Evidence](#d-execution-output-evidence)
+*   [5. Results Interpretation & Insights](#5-results-interpretation--insights)
+    *   [a. Summary of Results](#a-summary-of-results)
+    *   [b. Patterns and Insights Discovered](#b-patterns-and-insights-discovered)
+    *   [c. Performance and Accuracy Observations](#c-performance-and-accuracy-observations)
+*   [6. Troubleshooting/Challenges Faced](#6-troubleshootingchallenges-faced)
+
+---
+
+## Quick Start: Get Up and Running
+
+This section provides the essential commands to clone, build, and run the NYC Taxi Hotspot Analysis application. For detailed explanations, refer to the subsequent sections.
+
+**Prerequisites:**
+*   Java Development Kit (JDK) 1.8+
+*   Apache Maven 3.x
+*   Hadoop 3.3.x (HDFS and YARN services must be running)
+*   Git
+
+**1. Clone the Repository:**
+```bash
+git clone https://github.com/PasanAbeysekara/Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce
+cd Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce
+```
+
+**2. Build the Project:**
+Navigate into the `NYCTaxiAnalysis` directory first:
+```bash
+cd NYCTaxiAnalysis
+mvn clean package
+```
+This creates `target/NYCTaxiAnalysis-1.0-SNAPSHOT.jar`. After building, you might want to return to the repository root: `cd ..`
+
+**3. Prepare Data:**
+
+   **a. Download Data Files:**
+   Download the following files (links also available in [Section 2](#2-dataset-chosen--appropriateness)):
+    *   Trip Data: [yellow_tripdata_2016-01.parquet](https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2016-01.parquet)
+    *   Lookup Data: [taxi_zone_lookup.csv](https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv)
+
+   **b. Place Data Files:**
+   Create a directory named `data` at the root of the cloned repository (e.g., `Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce/data/`) and place the downloaded files into it.
+
+**4. Upload Data to HDFS:**
+(Ensure you are at the root of the cloned repository. Replace `<your_username>` with your Hadoop username.)
+```bash
+# Create HDFS directories (if they don't exist)
+hdfs dfs -mkdir -p /user/<your_username>/nyctaxi_input
+hdfs dfs -mkdir -p /user/<your_username>/nyctaxi_lookup
+
+# Upload data files from your local 'data' directory
+hdfs dfs -put ./data/yellow_tripdata_2016-01.parquet /user/<your_username>/nyctaxi_input/
+hdfs dfs -put ./data/taxi_zone_lookup.csv /user/<your_username>/nyctaxi_lookup/
+```
+
+**5. Run the MapReduce Job:**
+(Ensure you are in the `NYCTaxiAnalysis` directory where the JAR file was built. Replace `<your_username>`.)
+```bash
+# Remove previous output directory (if any) to prevent errors
+hdfs dfs -rm -r /user/<your_username>/nyctaxi_output
+
+# Execute the job
+hadoop jar target/NYCTaxiAnalysis-1.0-SNAPSHOT.jar com.nyctaxi.NYCTaxiDriver \
+/user/<your_username>/nyctaxi_input/yellow_tripdata_2016-01.parquet \
+/user/<your_username>/nyctaxi_output \
+/user/<your_username>/nyctaxi_lookup/taxi_zone_lookup.csv
+```
+
+**6. View Top N Results:**
+After the job completes, navigate to the root of the cloned repository.
+```bash
+# Get the merged output from HDFS to a local file
+hdfs dfs -getmerge /user/<your_username>/nyctaxi_output ./final_output.txt
+
+# Run the Python script to display Top N results
+python3 DataInvestigation/get_top_n.py ./final_output.txt
+
+# Optional: Clean up the local merged file
+# rm ./final_output.txt
+```
+
+---
 
 ## 1. Project Objective & Task
 
@@ -21,13 +119,13 @@ The primary objective is to identify the busiest taxi pickup locations within Ne
 
 This task aligns with typical "aggregation" and "counting" patterns well-suited for MapReduce, similar to "Log Analysis" (extracting top IPs) or "Sales Aggregation" mentioned in the assignment brief.
 
-## 2. [Dataset](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page) Chosen & Appropriateness
+## 2. Dataset Chosen & Appropriateness
 
 We selected a **publicly available dataset** as encouraged by the assignment guidelines. The dataset consists of two main parts:
 
 **a. NYC Yellow Taxi Trip Data:**
 
-*   **Source:** NYC Taxi & Limousine Commission (TLC) Trip Record Data (a well-known public dataset)
+*   **Source:** NYC Taxi & Limousine Commission (TLC) Trip Record Data (a well-known public dataset) - [Official Link](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page)
 *   **File Used:** `yellow_tripdata_2016-01.parquet` (Data for January 2016)
 *   **Format:** Apache Parquet (a columnar format suitable for large-scale data processing)
 *   **Size:** Approximately 10.9 million records, significantly exceeding the 100,000-row minimum requirement.
@@ -48,11 +146,12 @@ The chosen dataset is public, real-world, and large-scale (10.9M records). Its s
 
 ### Data Investigation
 
+To understand the dataset structure, run the provided analysis script. Ensure the Parquet and CSV files are downloaded (e.g., into a parent directory `../` relative to `DataInvestigation/` or adjust path in script).
 ```bash
 python3 DataInvestigation/analysis.py
 ```
 
-
+**Output of `analysis.py` (summary):**
 ```
 --- Exploring Parquet File: ../yellow_tripdata_2016-01.parquet ---
 
@@ -364,7 +463,7 @@ The project's code is designed for modularity, clarity, error resilience, and ef
 ```
 .
 ├── DataInvestigation/              # Scripts for data exploration and post-processing
-│   ├── analysis.py               # (Optional: Script for initial data analysis/exploration)
+│   ├── analysis.py               # Script for initial data analysis/exploration
 │   └── get_top_n.py              # Python script for sorting and displaying Top N results
 ├── NYCTaxiAnalysis/                # Core MapReduce Java project (Maven structure)
 │   ├── dependency-reduced-pom.xml  # POM generated by Maven Shade Plugin
@@ -389,7 +488,6 @@ The project's code is designed for modularity, clarity, error resilience, and ef
 │   ├── ... (other image files) ...
 │   └── image.png
 └── install_hadoop.sh               # (Optional: Script for Hadoop setup assistance)
-
 ```
 
 ## 4. Setup Environment & Execution
@@ -398,51 +496,61 @@ The project's code is designed for modularity, clarity, error resilience, and ef
 *   Java Development Kit (JDK) 1.8 or higher.
 *   Apache Maven 3.x.
 *   Hadoop 3.3.x (A single-node cluster was used for this project, installed locally on Ubuntu). HDFS and YARN services must be running.
+*   Git for cloning the repository.
 
 ### b. Hadoop Installation Evidence:
-![21](images/21.png)
-![22](images/22.png)
-![3 - NameNode UI](<images/13.png>)
-![4 - ResourceManager UI](<images/14.png>)
+Screenshots demonstrating a functional Hadoop environment:
+![HDFS Status](images/21.png)
+![YARN Status](images/22.png)
+![NameNode UI](<images/13.png>)
+![ResourceManager UI](<images/14.png>)
 
-### c. Steps to Run:
+### c. Steps to Run (Detailed):
+
+These steps provide a comprehensive guide. For a quicker set of commands, see the [Quick Start](#quick-start-get-up-and-running) section.
 
 1.  **Clone the Repository:**
     ```bash
     git clone https://github.com/PasanAbeysekara/Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce
-    cd NYCTaxiAnalysis
+    cd Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce
     ```
 
-2.  **Build the Project:**
-    Navigate to the project root (`NYCTaxiAnalysis/`) and execute:
+2.  **Download Data:**
+    Download `yellow_tripdata_2016-01.parquet` and `taxi_zone_lookup.csv` from the links provided in [Section 2](#2-dataset-chosen--appropriateness). Create a directory named `data` at the root of the cloned repository (e.g., `Taxi-Pickup-Hotspot-Analysis-using-Hadoop-MapReduce/data/`) and place the downloaded files into this `data` directory.
+
+3.  **Build the Project:**
+    Navigate to the `NYCTaxiAnalysis/` sub-directory:
     ```bash
+    cd NYCTaxiAnalysis
     mvn clean package
     ```
-    This compiles the Java source and packages it into `target/NYCTaxiAnalysis-1.0-SNAPSHOT.jar`.
+    This compiles the Java source and packages it into `target/NYCTaxiAnalysis-1.0-SNAPSHOT.jar`. After building, you may want to return to the repository root: `cd ..`
 
-3.  **Start Hadoop Services (if not already running):**
+4.  **Start Hadoop Services (if not already running):**
     ```bash
+    # Ensure these are run from $HADOOP_HOME/sbin or have $HADOOP_HOME/sbin in your PATH
     start-dfs.sh
     start-yarn.sh
     # Optional, but recommended for viewing job history details:
-    $HADOOP_HOME/sbin/mr-jobhistory-daemon.sh start historyserver
+    mr-jobhistory-daemon.sh start historyserver
     ```
 
-4.  **Upload Data to HDFS:**
-    Replace `<your_username>` with your actual Hadoop username.
+5.  **Upload Data to HDFS:**
+    (Run from the root of the cloned repository. Replace `<your_username>` with your actual Hadoop username.)
     ```bash
     # Create HDFS directories (if they don't exist)
     hdfs dfs -mkdir -p /user/<your_username>/nyctaxi_input
     hdfs dfs -mkdir -p /user/<your_username>/nyctaxi_lookup
 
-    # Upload the Parquet trip data file (assuming it's in a local 'data' subfolder)
-    hdfs dfs -put data/yellow_tripdata_2016-01.parquet /user/<your_username>/nyctaxi_input/
+    # Upload the Parquet trip data file from your local 'data' subfolder
+    hdfs dfs -put ./data/yellow_tripdata_2016-01.parquet /user/<your_username>/nyctaxi_input/
 
-    # Upload the taxi zone lookup CSV file
-    hdfs dfs -put data/taxi_zone_lookup.csv /user/<your_username>/nyctaxi_lookup/
+    # Upload the taxi zone lookup CSV file from your local 'data' subfolder
+    hdfs dfs -put ./data/taxi_zone_lookup.csv /user/<your_username>/nyctaxi_lookup/
     ```
- 
-5.  **Run the MapReduce Job:**
+
+6.  **Run the MapReduce Job:**
+    Navigate to the `NYCTaxiAnalysis/` directory (where the JAR is located).
     Ensure any previous output directory is removed to prevent errors:
     ```bash
     hdfs dfs -rm -r /user/<your_username>/nyctaxi_output
@@ -454,13 +562,13 @@ The project's code is designed for modularity, clarity, error resilience, and ef
     /user/<your_username>/nyctaxi_output \
     /user/<your_username>/nyctaxi_lookup/taxi_zone_lookup.csv
     ```
-    Screenshot of the terminal showing the `hadoop jar ...` command execution and the console output indicating job submission and map/reduce progress percentages
-    ![1](images/1.png)
-    ![2](images/1.png)
-    
-    Screenshot of the YARN ResourceManager UI showing the application running or in the list of completed applications
-    ![9](images/9.png)
-    ![10](images/10.png)
+    Terminal output during job execution:
+    ![Job Submission & Progress 1](images/1.png)
+    ![Job Submission & Progress 2](images/2.png) <!-- Note: Original README used images/1.png twice, keeping as is -->
+
+    YARN ResourceManager UI showing application status:
+    ![YARN App Running/Completed 1](images/9.png)
+    ![YARN App Running/Completed 2](images/10.png)
 
 ### d. Execution Output Evidence:
 
@@ -468,18 +576,17 @@ Evidence of successful execution is provided through logs and output samples.
 
 *   **MapReduce Job Log / YARN UI for Counters:**
     The YARN UI provides detailed counters demonstrating the data flow and successful completion of the job.
+    ![Job Counters 1](images/image.png)
+    ![Job Counters 2](images/22-counters.png)
 
-    ![image](images/image.png)
-    ![22-counters](images/22-counters.png)
-    
 *   **Output Sample (from HDFS):**
     A sample of the direct output from the reducer, stored in HDFS:
     ```bash
     hdfs dfs -cat /user/<your_username>/nyctaxi_output/part-r-00000 | head -n 10
     ```
-    Screenshot of the terminal showing the first few lines of the `part-r-00000` output file, displaying the "Zone Name (Borough) <TAB> Count" format.
-    ![3](images/3.png)
-    ![6](images/6.png)
+    Terminal showing HDFS output sample:
+    ![HDFS Output Sample 1](images/3.png)
+    ![HDFS Output Sample 2](images/6.png)
 
 ## 5. Results Interpretation & Insights
 
@@ -487,7 +594,9 @@ The MapReduce job successfully processed all 10,905,067 records from the January
 
 ### a. Summary of Results:
 
-The primary output is a list of taxi zones ranked by their total pickup counts. The Top 20 busiest pickup locations for January 2016 are:
+The primary output is a list of taxi zones ranked by their total pickup counts. To view the ranked list, use the `get_top_n.py` script as described in the [Quick Start](#quick-start-get-up-and-running) (Step 6) or [Section 4.c](#c-steps-to-run-detailed).
+
+The Top 20 busiest pickup locations for January 2016 are:
 
 1.  Upper East Side South (Manhattan): 411,853 pickups
 2.  Midtown Center (Manhattan): 392,997 pickups
@@ -510,9 +619,8 @@ The primary output is a list of taxi zones ranked by their total pickup counts. 
 19. JFK Airport (Queens): 247,243 pickups
 20. West Village (Manhattan): 240,500 pickups
 
-Screenshot of the terminal output from the `get_top_n.py` script, clearly showing the ranked Top 20 list.
-
-![8](images/8.png)
+Screenshot of the terminal output from the `get_top_n.py` script:
+![Top 20 Results](images/8.png)
 
 ### b. Patterns and Insights Discovered:
 
