@@ -254,30 +254,103 @@ Examples: [104, 204, 110, 103]
 
 The analysis is performed using a single Hadoop MapReduce job written in **Java**.
 
-### a. MapReduce Workflow:
+**Why Hadoop MapReduce is Essential for This Task:**
+
+The primary dataset (`yellow_tripdata_2016-01.parquet`) contains approximately **10.9 million records**. Processing this volume of data on a single machine using traditional methods would be inefficient and potentially infeasible due to:
+*   **Processing Time:** Sequentially reading, parsing, aggregating, and joining millions of records would be very slow.
+*   **Memory Constraints:** Holding all data or large intermediate aggregations in a single machine's memory could lead to `OutOfMemoryError` exceptions.
+*   **Lack of Scalability:** Such an approach would not scale to handle larger datasets (e.g., multiple years of data).
+
+Hadoop MapReduce is well-suited for this large-scale data analysis because it provides:
+1.  **Distributed Storage (HDFS):** Manages the large Parquet file across a cluster (or a single-node setup emulating a cluster).
+2.  **Distributed & Parallel Processing:** The MapReduce framework automatically splits the input data and distributes "Map" tasks to process these splits concurrently across available nodes or cores. Reducer tasks also benefit from parallelism. This significantly reduces overall processing time.
+3.  **Fault Tolerance:** The framework can handle task failures by automatically rescheduling them, ensuring job completion even with hardware issues in a larger cluster.
+4.  **Scalability:** Hadoop's architecture allows for horizontal scaling by adding more nodes to increase processing capacity for even larger datasets.
+
+For our task of counting millions of taxi pickups and joining this data with zone information, Hadoop provides the necessary robust and scalable infrastructure.
+
+### a. MapReduce Workflow Details & Example:
+
+The core logic involves counting pickups for each `PULocationID` and then translating this ID to a human-readable zone name using a lookup table.
+
+**Conceptual Data Snippets for Illustration:**
+
+*   **Trip Data (from Parquet - relevant field `PULocationID`):**
+    *   Record 1: `PULocationID = 161`
+    *   Record 2: `PULocationID = 48`
+    *   Record 3: `PULocationID = 161`
+    *   Record 4: `PULocationID = 230`
+    *   Record 5: `PULocationID = 161`
+    *(Imagine 10.9 million such records)*
+
+*   **Zone Lookup Data (`taxi_zone_lookup.csv` - relevant fields):**
+    | LocationID | Borough   | Zone             |
+    |------------|-----------|------------------|
+    | 48         | Manhattan | Clinton East     |
+    | 161        | Manhattan | Midtown Center   |
+    | 230        | Manhattan | Times Sq/Theatre |
+
+---
 
 1.  **Mapper (`PickupLocationMapper.java`):**
-    *   **Input:** Each row (as a Parquet `Group` object) from `yellow_tripdata_2016-01.parquet`.
-    *   **Process:** Extracts the `PULocationID` (Pickup Location ID, an integer) from each trip record. It includes robust error handling for potential `null` input records that might be passed by the Parquet reader, skipping them and incrementing a counter.
-    *   **Output:** Emits intermediate key-value pairs: `(IntWritable(PULocationID), IntWritable(1))`. Each '1' represents a single pickup from that location.
+    *   **Input:** Each row from the `yellow_tripdata_2016-01.parquet` file, represented as a Parquet `Group` object (which allows access to individual fields within a record).
+    *   **Process:**
+        *   For each input `Group` (trip record), the mapper extracts the integer value of the `PULocationID` field.
+        *   It includes robust error handling for scenarios where the Parquet reader might pass a `null` `Group` object (e.g., due to an empty or malformed split). Such records are skipped, and a Hadoop counter (`NullGroupValueEncountered`) is incremented for monitoring.
+    *   **Output (Intermediate Key-Value Pairs):** Emits the extracted `PULocationID` as an `IntWritable` key and the integer `1` as an `IntWritable` value. Each `(PULocationID, 1)` pair signifies one observed pickup from that location.
+        *   Example emissions for the conceptual data:
+            *   `(IntWritable(161), IntWritable(1))`
+            *   `(IntWritable(48), IntWritable(1))`
+            *   `(IntWritable(161), IntWritable(1))`
+            *   `(IntWritable(230), IntWritable(1))`
+            *   `(IntWritable(161), IntWritable(1))`
 
-2.  **Combiner (`PickupLocationCombiner.java`):**
-    *   **Input:** Intermediate output from mappers on the same node, grouped by `PULocationID`: `(IntWritable(PULocationID), [Iterable<IntWritable> of 1s])`.
-    *   **Process:** Performs a local aggregation by summing the counts (the '1's) for each `PULocationID` before the data is sent to the reducers.
-    *   **Output:** Emits aggregated key-value pairs: `(IntWritable(PULocationID), IntWritable(partial_sum_of_pickups))`.
-    *   **Purpose:** This significantly optimizes network traffic by reducing the volume of data shuffled between map and reduce phases.
+---
 
-3.  **Reducer (`PickupLocationReducer.java`):**
+2.  **Shuffle and Sort (Hadoop Framework Phase):**
+    *   This crucial phase, managed entirely by Hadoop, occurs after all Mappers complete.
+    *   It collects all `(key, value)` pairs emitted by all Mappers.
+    *   It sorts these pairs based on the key (`PULocationID`).
+    *   It groups all values associated with the same key, preparing them for the Combiner or Reducer.
+    *   **Example data after Shuffle & Sort (input to Combiners/Reducers):**
+        *   `IntWritable(48): [IntWritable(1)]`
+        *   `IntWritable(161): [IntWritable(1), IntWritable(1), IntWritable(1)]`
+        *   `IntWritable(230): [IntWritable(1)]`
+
+---
+
+3.  **Combiner (`PickupLocationCombiner.java`):**
+    *   **Purpose:** This optional but highly recommended phase acts as a "mini-reducer" that runs on the same node where map tasks finished. Its primary goal is to reduce the amount of data transferred over the network to the Reducer nodes, significantly optimizing job performance.
+    *   **Input:** Receives the sorted and grouped output from the mappers that ran on its local node. For example, if three map outputs for `PULocationID=161` were processed on one node, the Combiner would receive `(IntWritable(161), Iterable<IntWritable> containing three '1's)`.
+    *   **Process:** Performs a local aggregation by summing the `IntWritable` values (the '1's) for each distinct `PULocationID` it processes.
+    *   **Output:** Emits aggregated key-value pairs, where the value is now a partial sum.
+        *   Example emission for key 161 from one combiner instance: `(IntWritable(161), IntWritable(3))`
+
+---
+
+4.  **Reducer (`PickupLocationReducer.java`):**
     *   **`setup()` Phase (DistributedCache Join Preparation):**
-        *   Loads the `taxi_zone_lookup.csv` file (previously added to Hadoop DistributedCache by the driver) into an in-memory `HashMap`. This map stores `LocationID` -> `{Borough, Zone}`.
-        *   The loading process includes robust CSV parsing: skipping the header, trimming whitespace from values, and handling potentially empty or missing borough/zone names by assigning default "Unknown" values. Error counters are used to track parsing issues.
+        *   This method is called once per Reducer task before any `reduce()` calls.
+        *   It loads the `taxi_zone_lookup.csv` file. This file was previously added to the Hadoop DistributedCache by the `NYCTaxiDriver`. The DistributedCache ensures the file is available locally on each node running a Reducer task.
+        *   The Reducer reads this local CSV file and populates an in-memory `HashMap<Integer, String[]>`, mapping each `LocationID` to an array containing its `{Borough, Zone}`.
+        *   The loading process includes robust CSV parsing logic: it skips the header row, trims whitespace from parsed string values, and handles cases where borough or zone names might be empty or missing by assigning default "Unknown" string values. Hadoop counters are used to track any parsing issues or the number of entries loaded (e.g., `ZoneLookupEntriesLoaded`).
     *   **`reduce()` Phase (Final Aggregation & Join):**
-        *   **Input:** Key-value pairs grouped by `PULocationID` from the combiners: `(IntWritable(PULocationID), [Iterable<IntWritable> of partial_sums])`.
+        *   **Input:** Receives data that has been shuffled and sorted from all Mappers (and Combiners, if used). The input is grouped by `PULocationID` (the key), with an `Iterable` of `IntWritable` values representing the partial sums from Combiners (or individual '1's if no Combiner ran or if keys were unique post-map).
+            *   Example inputs:
+                *   `(IntWritable(48), [IntWritable(1)])`
+                *   `(IntWritable(161), [IntWritable(3)])` (if a single Combiner processed all for 161)
+                *   `(IntWritable(230), [IntWritable(1)])`
         *   **Process:**
-            *   Sums all partial counts for a given `PULocationID` to calculate the `total_pickup_count`.
-            *   Looks up the `PULocationID` in the in-memory `zoneLookup` map to retrieve the corresponding `Borough` and `Zone` name.
-            *   If a `PULocationID` from the trip data is not found in the lookup table, it formats the output using default "Unknown Zone ID: [ID] (Unknown Borough)" and increments an error counter.
-        *   **Output:** Emits final key-value pairs: `(Text(Zone Name (Borough)), IntWritable(total_pickup_count))`.
+            1.  For each `PULocationID` key, iterates through the list of `IntWritable` values and sums them to calculate the `total_pickup_count` for that zone.
+            2.  Uses the `PULocationID` (integer value of the key) to look up the corresponding Borough and Zone from the in-memory `zoneLookup` HashMap built in the `setup()` phase.
+            3.  If a `PULocationID` from the trip data is not found in the lookup table (i.e., `zoneLookup.get(PULocationID)` returns null), it formats the output string to indicate an unknown zone (e.g., "Unknown Zone ID: [ID] (Unknown Borough)") and increments an error counter (`IDNotFoundInCache`).
+        *   **Output:** Emits the final key-value pairs to HDFS. The key is a `Text` object containing the formatted "Zone Name (Borough)", and the value is an `IntWritable` representing the `total_pickup_count`.
+            *   Example final outputs:
+                *   `(Text("Clinton East (Manhattan)"), IntWritable(1))`
+                *   `(Text("Midtown Center (Manhattan)"), IntWritable(3))`
+                *   `(Text("Times Sq/Theatre (Manhattan)"), IntWritable(1))`
+
+This comprehensive MapReduce pipeline efficiently transforms raw trip data into an aggregated summary of pickup hotspots, enriched with human-readable location names.
 
 ### b. Code Quality & Structure:
 
