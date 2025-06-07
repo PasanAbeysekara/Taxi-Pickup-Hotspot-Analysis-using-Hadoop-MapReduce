@@ -352,7 +352,7 @@ The core logic involves counting pickups for each `PULocationID` and then transl
 
 This comprehensive MapReduce pipeline efficiently transforms raw trip data into an aggregated summary of pickup hotspots, enriched with human-readable location names.
 
-### b. Code Quality & Structure:
+### b. Code Structure:
 
 The project's code is designed for modularity, clarity, error resilience, and efficiency:
 *   **Modularity:** Code is organized into distinct classes (Driver, Mapper, Combiner, Reducer) following MapReduce best practices.
