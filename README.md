@@ -460,14 +460,6 @@ Screenshot of the terminal output from the `get_top_n.py` script, clearly showin
     *   Hadoop counters such as `ReducerSetup -> ZoneLookupEntriesLoaded` (265) and `Reduce output records` (261) align with expectations for the dataset, indicating correct processing. The minor difference (265 lookup entries vs. 261 zones with pickups) is typical, as not all defined zones may have activity in a given period.
     *   The final successful run showed no significant error counts for critical operations like lookup ID mismatches or parsing errors, indicating high data integrity and correct processing.
 
-### d. Suggestions for Model Expansion:
-
-*   **Temporal Analysis:** Incorporate `tpep_pickup_datetime` to analyze pickup hotspots by time of day (e.g., morning rush, evening), day of the week, or seasonality (comparing different months/years). This would require modifying the Mapper to emit composite keys like `((PULocationID, HourOfDay), 1)`.
-*   **Dropoff Analysis:** Perform a similar analysis on `DOLocationID` to identify top dropoff zones and compare them with pickup patterns.
-*   **Correlational Analysis:** Extend the job to calculate average trip distance, fare, or tip amount per pickup zone by including these fields in the mapper/reducer logic.
-*   **Geospatial Visualization:** Integrate the output with GIS tools or libraries (e.g., GeoPandas, QGIS) to create heatmaps or choropleth maps of pickup intensity across NYC, providing a more intuitive visual representation.
-*   **Advanced Top N:** For scenarios with an extremely large number of unique keys where sorting externally is inefficient, implement a secondary MapReduce job specifically for sorting the (Zone, Count) pairs to produce the Top N list directly within Hadoop.
-
 ## 6. Troubleshooting/Challenges Faced
 
 Several challenges were encountered and overcome during the development of this project:
