@@ -66,8 +66,8 @@ This creates `target/NYCTaxiAnalysis-1.0-SNAPSHOT.jar`. After building, you migh
 **3. Prepare Data:**
 
    **a. Download Data Files:**
-   Download the following files (links also available in [Section 2](#2-dataset-chosen--appropriateness)):
-    *   Trip Data: [yellow_tripdata_2016-01.parquet](https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2016-01.parquet)
+   Download the following files (links also available in [Section 2](#2-dataset-chosen--appropriateness)):\
+    *   Trip Data: [yellow_tripdata_2016-01.parquet](https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2016-01.parquet)\
     *   Lookup Data: [taxi_zone_lookup.csv](https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv)
 
    **b. Place Data Files:**
