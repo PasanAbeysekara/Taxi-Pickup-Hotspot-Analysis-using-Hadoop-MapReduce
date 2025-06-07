@@ -1,9 +1,9 @@
 # NYC Taxi Pickup Hotspot Analysis using Hadoop MapReduce
 
-**Module Name:** Cloud Computing
-**Module Number:** EC7205
-**Assignment Title:** Large-Scale Data Analysis Using MapReduce
-**Team Members:** 
+#### **Module Name:** Cloud Computing
+#### **Module Number:** EC7205
+#### **Assignment Title:** Large-Scale Data Analysis Using MapReduce
+#### **Team Members:** 
 1. Abeysekara P.K. (EG/2020/3799)
 2. Aralugaswaththa S.V.C.R.P (EG/2020/3827)
 3. De Silva K.B.L.H. (EG/2020/3882)
