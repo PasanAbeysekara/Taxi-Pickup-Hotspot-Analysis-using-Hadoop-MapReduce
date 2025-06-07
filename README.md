@@ -327,8 +327,8 @@ The project's code is designed for modularity, clarity, error resilience, and ef
 *   Hadoop 3.3.x (A single-node cluster was used for this project, installed locally on Ubuntu). HDFS and YARN services must be running.
 
 ### b. Hadoop Installation Evidence:
-![11](images/11.png)
-![12](images/12.png)
+![21](images/21.png)
+![22](images/22.png)
 ![3 - NameNode UI](<images/13.png>)
 ![4 - ResourceManager UI](<images/14.png>)
 
