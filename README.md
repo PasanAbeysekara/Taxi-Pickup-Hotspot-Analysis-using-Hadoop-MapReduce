@@ -15,6 +15,10 @@ This project fulfills the requirements for Assignment 1 by implementing a custom
 ## Table of Contents
 
 *   [Quick Start: Get Up and Running](#quick-start-get-up-and-running)
+*   [Prerequisite Installation](#prerequisite-installation)
+    *   [For Linux/macOS Users](#for-linuxmacos-users)
+    *   [For Windows Users](#for-windows-users)
+    *   [After Running the Scripts](#after-running-the-scripts)
 *   [1. Project Objective & Task](#1-project-objective--task)
 *   [2. Dataset Chosen & Appropriateness](#2-dataset-chosen--appropriateness)
     *   [Data Investigation](#data-investigation)
@@ -43,6 +47,7 @@ This section provides the essential commands to clone, build, and run the NYC Ta
 *   Apache Maven 3.x
 *   Hadoop 3.3.x (HDFS and YARN services must be running)
 *   Git
+
 
 **1. Clone the Repository:**
 ```bash
@@ -105,6 +110,55 @@ python3 DataInvestigation/get_top_n.py ./final_output.txt
 # Optional: Clean up the local merged file
 # rm ./final_output.txt
 ```
+
+---
+
+## Prerequisite Installation
+
+Before proceeding with the setup and execution, ensure you have the necessary prerequisites. We provide helper scripts to guide you through the installation on Linux/macOS and Windows. These scripts should be located in the root of the repository (`install_prerequisites.sh` and `install_prerequisites.bat`).
+
+### For Linux/macOS Users:
+
+1.  Clone this repository if you haven't already.
+2.  Navigate to the repository root directory.
+3.  Make the script executable:
+    ```bash
+    chmod +x install_prerequisites.sh
+    ```
+4.  Run the script:
+    ```bash
+    ./install_prerequisites.sh
+    ```
+    This script will attempt to install Git, OpenJDK (1.8 or a newer LTS), and Maven using your system's package manager. It will also download Apache Hadoop (e.g., 3.3.6) to `$HOME/hadoop/hadoop-3.3.6` (or similar, check script output).
+
+    **IMPORTANT (Hadoop):** The script only downloads and extracts Hadoop. You **MUST** configure Hadoop manually. This includes:
+    *   Setting the `HADOOP_HOME` environment variable.
+    *   Adding `$HADOOP_HOME/bin` and `$HADOOP_HOME/sbin` to your `PATH`.
+    *   Configuring `JAVA_HOME` within `$HADOOP_HOME/etc/hadoop/hadoop-env.sh`.
+    *   Setting up Hadoop configuration files (`core-site.xml`, `hdfs-site.xml`, etc.) as per the official Hadoop documentation or any specific setup scripts you might have (like the `install_hadoop.sh` mentioned elsewhere in this project).
+
+### For Windows Users:
+
+1.  Clone this repository if you haven't already.
+2.  Navigate to the repository root directory.
+3.  Run the batch script:
+    ```batch
+    install_prerequisites.bat
+    ```
+    This script will provide guidance and links for manually installing Git, OpenJDK (1.8 or newer LTS), and Apache Maven. It will also guide you on setting up the necessary environment variables (`JAVA_HOME`, `M2_HOME`/`MAVEN_HOME`, `PATH`).
+
+    **IMPORTANT (Hadoop on Windows):**
+    *   **WSL2 Recommended:** Running Hadoop natively on Windows can be complex. We **strongly recommend** using Windows Subsystem for Linux 2 (WSL2) and then following the Linux/macOS installation script (`install_prerequisites.sh`) within your WSL2 environment.
+    *   **Native Windows (Advanced):** If you choose to install Hadoop natively on Windows, the script provides general guidance. You will need to:
+        *   Download the Hadoop binaries.
+        *   Obtain the correct `winutils.exe` and other Windows-specific Hadoop files for your Hadoop version.
+        *   Manually configure `HADOOP_HOME`, `PATH`, and Hadoop configuration files (`core-site.xml`, `hdfs-site.xml`, `hadoop-env.cmd`, etc.).
+
+### After Running the Scripts:
+
+*   Verify each prerequisite is installed correctly and their respective `..._HOME` variables and `PATH` are properly configured.
+*   You might need to open a new terminal/Command Prompt session for all environment variable changes to take effect.
+*   For Hadoop, proceed with the detailed configuration steps as outlined in its official documentation or specific instructions relevant to your setup (e.g., single-node cluster setup).
 
 ---
 
