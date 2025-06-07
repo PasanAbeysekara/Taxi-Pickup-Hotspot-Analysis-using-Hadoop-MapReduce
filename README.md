@@ -164,7 +164,7 @@ Before proceeding with the setup and execution, ensure you have the necessary pr
 
 ## 1. Project Objective & Task
 
-![nyc-taxi](images/nyc-taxi.jpg)
+![nyc-taxi](images/nyc-taxi-banner.jpg)
 
 The primary objective is to identify the busiest taxi pickup locations within New York City by processing one month of taxi trip records (January 2016). This involves:
 *   Counting the total number of pickups for each distinct taxi zone.
@@ -554,10 +554,10 @@ The project's code is designed for modularity, clarity, error resilience, and ef
 
 ### b. Hadoop Installation Evidence:
 Screenshots demonstrating a functional Hadoop environment:
-![HDFS Status](images/21.png)
-![YARN Status](images/22.png)
-![NameNode UI](<images/13.png>)
-![ResourceManager UI](<images/14.png>)
+![HDFS Status](images/hdfs-service-status.png)
+![YARN Status](images/yarn-service-status.png)
+![NameNode UI](images/namenode-ui.png)
+![ResourceManager UI](images/resourcemanager-ui.png)
 
 ### c. Steps to Run (Detailed):
 
@@ -617,30 +617,30 @@ These steps provide a comprehensive guide. For a quicker set of commands, see th
     /user/<your_username>/nyctaxi_lookup/taxi_zone_lookup.csv
     ```
     Terminal output during job execution:
-    ![Job Submission & Progress 1](images/1.png)
-    ![Job Submission & Progress 2](images/2.png) <!-- Note: Original README used images/1.png twice, keeping as is -->
+    ![Job Submission & Progress 1](images/job-execution-progress-1.png)
+    ![Job Submission & Progress 2](images/job-execution-progress-2.png)
 
     YARN ResourceManager UI showing application status:
-    ![YARN App Running/Completed 1](images/9.png)
-    ![YARN App Running/Completed 2](images/10.png)
+    ![YARN App Running/Completed 1](images/yarn-app-status-1.png)
+    ![YARN App Running/Completed 2](images/yarn-app-status-2.png)
 
 ### d. Execution Output Evidence:
 
 Evidence of successful execution is provided through logs and output samples.
 
-*   **MapReduce Job Log / YARN UI for Counters:**
-    The YARN UI provides detailed counters demonstrating the data flow and successful completion of the job.
-    ![Job Counters 1](images/image.png)
-    ![Job Counters 2](images/22-counters.png)
+- **MapReduce Job Log / YARN UI for Counters:**
+  The YARN UI provides detailed counters demonstrating the data flow and successful completion of the job.
+  ![Job Counters 1](images/job-counters-1.png)
+  ![Job Counters 2](images/job-counters-2.png)
 
-*   **Output Sample (from HDFS):**
-    A sample of the direct output from the reducer, stored in HDFS:
-    ```bash
-    hdfs dfs -cat /user/<your_username>/nyctaxi_output/part-r-00000 | head -n 10
-    ```
-    Terminal showing HDFS output sample:
-    ![HDFS Output Sample 1](images/3.png)
-    ![HDFS Output Sample 2](images/6.png)
+- **Output Sample (from HDFS):**
+  A sample of the direct output from the reducer, stored in HDFS:
+  ```bash
+  hdfs dfs -cat /user/<your_username>/nyctaxi_output/part-r-00000 | head -n 10
+  ```
+  Terminal showing HDFS output sample:
+  ![HDFS Output Sample 1](images/hdfs-output-sample-1.png)
+  ![HDFS Output Sample 2](images/hdfs-output-sample-2.png)
 
 ## 5. Results Interpretation & Insights
 
@@ -674,7 +674,7 @@ The Top 20 busiest pickup locations for January 2016 are:
 20. West Village (Manhattan): 240,500 pickups
 
 Screenshot of the terminal output from the `get_top_n.py` script:
-![Top 20 Results](images/8.png)
+![Top 20 Results](images/top-20-results.png)
 
 ### b. Patterns and Insights Discovered:
 
