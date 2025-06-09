@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    restart: unless-stopped
+    ports:
+      - "9870:9870" # Namenode Web UI
+      - "9000:9000" # HDFS IPC
+    volumes:
+      - ./data:/data_local # Mount local data folder for input/output
+      - ./NYCTaxiAnalysis/target:/app_jars # Mount built JARs
+      - hadoop_namenode_data:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=nyctaxi_cluster
+      - HTTP_PROXY=http://10.50.225.222:3128
+      - HTTPS_PROXY=http://10.50.225.222:3128
+      - NO_PROXY=*.local,localhost,127.0.0.1,namenode,datanode1,resourcemanager,nodemanager1,historyserver
+    env_file:
+      - ./hadoop.env
+
+  datanode1: # Renamed to avoid conflict if you scale
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode1
+    restart: unless-stopped
+    volumes:
+      - hadoop_datanode1_data:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870" # Wait for namenode UI
+    depends_on:
+      - namenode
+    env_file:
+      - ./hadoop.env
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    restart: unless-stopped
+    ports:
+      - "8088:8088" # YARN RM Web UI
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870 datanode1:9864" # Wait for datanode data xceiver port
+    depends_on:
+      - namenode
+      - datanode1
+    env_file:
+      - ./hadoop.env
+
+  nodemanager1:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager1
+    restart: unless-stopped
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870 datanode1:9864 resourcemanager:8088"
+      YARN_NODEMANAGER_RESOURCE_MEMORY_MB: 2048 # Adjust as needed for your job
+      YARN_NODEMANAGER_RESOURCE_CPU_VCORES: 2
+    depends_on:
+      - namenode
+      - datanode1
+      - resourcemanager
+    env_file:
+      - ./hadoop.env
+
+  historyserver:
+    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
+    container_name: historyserver
+    restart: unless-stopped
+    ports:
+      - "8188:8188" # JobHistory Server UI
+    volumes:
+      - hadoop_historyserver_data:/hadoop/yarn/timeline
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870 datanode1:9864 resourcemanager:8088"
+    depends_on:
+      - namenode
+      - datanode1
+      - resourcemanager
+    env_file:
+      - ./hadoop.env
+
+volumes:
+  hadoop_namenode_data:
+  hadoop_datanode1_data:
+  hadoop_historyserver_data:
